@@ -1,0 +1,8 @@
+# Each app has its own .gitignore where needed (frontend/.gitignore).
+node_modules/
+dist/
+.env
+.env.local
+backend/storage/
+*.tsbuildinfo
+.DS_Store

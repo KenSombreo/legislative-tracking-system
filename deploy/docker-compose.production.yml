@@ -1,0 +1,59 @@
+# Production stack on the server. Kept on the server in PRODUCTION_PATH (copy it
+# there by hand after changing it); started by deploy_production.sh.
+#
+# Needs next to it:
+#   .env           IMAGE_NAMESPACE=<docker hub namespace> (written by deploy_production.sh)
+#   backend.env    the API's settings (see backend/.env.example), created by hand once.
+#                  Set a strong JWT_SECRET. MongoDB runs on the server itself, so point
+#                  DATABASE_URL at the host:
+#                  mongodb://<user>:<password>@host.docker.internal:27017/legislative_tracking
+#   /mnt/legislative-tracking/storage   uploaded documents (create once: mkdir -p, chown -R 1000:1000)
+#
+# Nginx Proxy Manager reaches the site over the shared "proxy" network
+# (create once: docker network create proxy, and attach NPM to it).
+# In NPM, forward the domain to  legislative-tracking-frontend : 3000.
+#
+# First admin account (once, after the first deploy):
+#   docker exec legislative-tracking-backend node dist/seed.js
+
+name: legislative-tracking
+
+services:
+  backend:
+    image: ${IMAGE_NAMESPACE}/legislative-tracking-api:${TAG:-latest}
+    container_name: legislative-tracking-backend
+    restart: unless-stopped
+    env_file: backend.env
+    environment:
+      PORT: "3001"
+      FILE_STORAGE_PATH: storage
+      # 25 MB, matching the limit shown on the upload screens.
+      MAX_FILE_SIZE: "26214400"
+    extra_hosts:
+      # Lets the container reach MongoDB running on the server.
+      - "host.docker.internal:host-gateway"
+    volumes:
+      # Signed ordinances, resolutions, minutes and committee reports, kept on the
+      # server so they survive redeploys. The folder must be owned by uid 1000
+      # (the container's "node" user).
+      - /mnt/legislative-tracking/storage:/app/storage
+    networks:
+      - default
+
+  frontend:
+    image: ${IMAGE_NAMESPACE}/legislative-tracking-web:${TAG:-latest}
+    container_name: legislative-tracking-frontend
+    restart: unless-stopped
+    environment:
+      API_INTERNAL_URL: http://backend:3001
+    # No published ports: only Nginx Proxy Manager reaches it, via "proxy".
+    networks:
+      - default
+      - proxy
+    depends_on:
+      - backend
+
+networks:
+  default:
+  proxy:
+    external: true
