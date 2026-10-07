@@ -4,5 +4,7 @@ dist/
 .env
 .env.local
 backend/storage/
+# Database exports from src/db-transfer.ts (contain password hashes)
+legislative_tracking*.json
 *.tsbuildinfo
 .DS_Store

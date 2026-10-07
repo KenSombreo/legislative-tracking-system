@@ -22,11 +22,11 @@ ARG API_INTERNAL_URL=http://backend:3001
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
     API_INTERNAL_URL=$API_INTERNAL_URL \
-    PORT=3000 \
+    PORT=4001 \
     HOSTNAME=0.0.0.0
 COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
 COPY --from=build --chown=node:node /app/public ./public
 USER node
-EXPOSE 3000
+EXPOSE 4001
 CMD ["node", "server.js"]
