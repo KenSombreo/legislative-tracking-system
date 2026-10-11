@@ -17,6 +17,7 @@ const MAIN_NAV = [
   { href: "/committee-reports", label: "Committee reports" },
   { href: "/calendar", label: "Session calendar" },
   { href: "/members", label: "SB members" },
+  { href: "/reports", label: "Reports" },
 ];
 
 const ADMIN_NAV = [
