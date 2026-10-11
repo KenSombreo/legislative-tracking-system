@@ -1,6 +1,24 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document, Types } from 'mongoose';
 import { DocumentType } from '../../common/config/legislation-fields.config';
+import { TrackingStage } from '../../common/config/tracking-stages.config';
+
+@Schema({ _id: false })
+export class StageEntry {
+  @Prop({ type: String, enum: TrackingStage, required: true })
+  stage: TrackingStage;
+
+  @Prop({ type: Date, required: true })
+  date: Date;
+
+  @Prop({ type: String, default: null })
+  note: string | null;
+
+  @Prop({ type: Types.ObjectId, ref: 'User', default: null })
+  changedBy: Types.ObjectId | null;
+}
+
+export const StageEntrySchema = SchemaFactory.createForClass(StageEntry);
 
 export enum ApprovalStatus {
   PENDING = 'PENDING',
@@ -60,6 +78,17 @@ export class LegislativeDocument extends Document {
 
   @Prop({ type: [Types.ObjectId], ref: 'DocumentFile', default: [] })
   documents: Types.ObjectId[];
+
+  // Where the measure is in the legislative process; null on records imported before the tracker.
+  @Prop({ type: String, enum: TrackingStage, default: null, index: true })
+  stage: TrackingStage | null;
+
+  @Prop({ type: [StageEntrySchema], default: [] })
+  stageHistory: StageEntry[];
+
+  // Only records an ADMIN has released appear on the public kiosk / QR pages.
+  @Prop({ type: Boolean, default: false, index: true })
+  isPublic: boolean;
 
   // Records created by STAFF wait for an ADMIN to approve them before showing in the public lists.
   // Records without this field (created before approvals existed) count as approved.

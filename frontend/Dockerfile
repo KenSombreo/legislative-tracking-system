@@ -11,6 +11,10 @@ WORKDIR /app
 # inside the Docker network is baked in here.
 ARG API_INTERNAL_URL=http://backend:3001
 ENV API_INTERNAL_URL=$API_INTERNAL_URL
+# Public address put in QR codes (e.g. https://records.example.gov.ph). Empty = the address the
+# page was opened from, which is wrong only when the kiosk browses via an internal address.
+ARG NEXT_PUBLIC_SITE_URL=
+ENV NEXT_PUBLIC_SITE_URL=$NEXT_PUBLIC_SITE_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .

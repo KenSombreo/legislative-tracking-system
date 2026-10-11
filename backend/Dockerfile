@@ -12,7 +12,10 @@ FROM node:22-alpine AS runtime
 WORKDIR /app
 ENV NODE_ENV=production \
     PORT=3001 \
-    FILE_STORAGE_PATH=storage
+    FILE_STORAGE_PATH=storage \
+    OCR_LANGUAGES=eng
+# OCR for scanned PDFs, so their text can be searched (see documents/text-extraction.service.ts).
+RUN apk add --no-cache ocrmypdf tesseract-ocr-data-eng
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 COPY --from=build /app/dist ./dist

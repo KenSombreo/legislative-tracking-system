@@ -8,11 +8,46 @@ import { UpdateLegislationDto } from './dto/update-legislation.dto';
 import { QueryLegislationDto } from './dto/query-legislation.dto';
 import { DocumentType, getRequiredFieldsForType } from '../common/config/legislation-fields.config';
 import { AuditService } from '../audit-logs/audit.service';
+import { DocumentFile } from '../documents/schemas/document-file.schema';
+import { TrackingStage } from '../common/config/tracking-stages.config';
+import { UpdateStageDto } from './dto/update-stage.dto';
+
+// What the public kiosk / QR pages may see. Leaves out remarks (often internal notes), the
+// people who encoded or reviewed the record, and the notes staff add to tracker steps.
+export const PUBLIC_FIELDS = [
+  'documentType',
+  'documentNumber',
+  'year',
+  'title',
+  'classification',
+  'status',
+  'dateEnacted',
+  'dateAdopted',
+  'dateApprovedByLCE',
+  'dateEnactedApprovedBySP',
+  'author',
+  'sponsor',
+  'spResolutionNumber',
+  'sector',
+  'onlineLink',
+  'stage',
+  'stageHistory.stage',
+  'stageHistory.date',
+  'updatedAt',
+].join(' ');
+
+// The record date each tracker step fills in when it is reached and the date is still empty.
+const STAGE_DATE_FIELD: Partial<Record<TrackingStage, (type: DocumentType) => keyof LegislativeDocument | null>> = {
+  [TrackingStage.THIRD_READING]: (type) => (type === DocumentType.RESOLUTION ? 'dateAdopted' : 'dateEnacted'),
+  [TrackingStage.LCE_APPROVAL]: () => 'dateApprovedByLCE',
+  [TrackingStage.EFFECTIVE]: (type) => (type === DocumentType.RESOLUTION ? null : 'dateEnactedApprovedBySP'),
+};
 
 @Injectable()
 export class LegislationService {
   constructor(
     @InjectModel(LegislativeDocument.name) private docModel: Model<LegislativeDocument>,
+    @InjectModel(DocumentFile.name) private fileModel: Model<DocumentFile>,
     private auditService: AuditService,
   ) {}
 
@@ -70,12 +105,38 @@ export class LegislationService {
     return doc;
   }
 
-  async findAll(query: QueryLegislationDto, presetType?: DocumentType, role?: string) {
-    const page = query.page ? parseInt(query.page, 10) : 1;
-    const limit = query.limit ? parseInt(query.limit, 10) : 20;
+  // Ids of records whose number/title/author match, plus those whose uploaded files contain the
+  // words (text pulled out of the PDFs, OCR'd when scanned).
+  private async searchIds(term: string): Promise<Types.ObjectId[]> {
+    const regex = new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+    const [byText, byField, byFile] = await Promise.all([
+      this.docModel.find({ $text: { $search: term } }, { _id: 1 }).lean().exec(),
+      this.docModel
+        .find({ $or: [{ documentNumber: regex }, { title: regex }, { author: regex }, { sponsor: regex }, { classification: regex }] }, { _id: 1 })
+        .lean()
+        .exec(),
+      // The files' text index is built in the background on first start; until then just skip file matches.
+      this.fileModel
+        .find({ $text: { $search: term } }, { legislativeDocumentId: 1 })
+        .lean()
+        .exec()
+        .catch(() => []),
+    ]);
+    const ids = new Map<string, Types.ObjectId>();
+    for (const d of [...byText, ...byField]) ids.set(String(d._id), d._id as Types.ObjectId);
+    for (const f of byFile) ids.set(String(f.legislativeDocumentId), f.legislativeDocumentId as Types.ObjectId);
+    return [...ids.values()];
+  }
+
+  async findAll(query: QueryLegislationDto, presetType?: DocumentType, role?: string, options: { publicOnly?: boolean } = {}) {
+    const page = query.page ? Math.max(parseInt(query.page, 10) || 1, 1) : 1;
+    const limit = query.limit ? Math.min(Math.max(parseInt(query.limit, 10) || 20, 1), 100) : 20;
     const filter: any = {};
 
-    if (query.approvalStatus && query.approvalStatus !== ApprovalStatus.APPROVED && role === UserRole.ADMIN) {
+    if (options.publicOnly) {
+      filter.approvalStatus = { $nin: [ApprovalStatus.PENDING, ApprovalStatus.REJECTED] };
+      filter.isPublic = true;
+    } else if (query.approvalStatus && query.approvalStatus !== ApprovalStatus.APPROVED && role === UserRole.ADMIN) {
       filter.approvalStatus = query.approvalStatus;
     } else {
       filter.approvalStatus = { $nin: [ApprovalStatus.PENDING, ApprovalStatus.REJECTED] };
@@ -99,36 +160,18 @@ export class LegislationService {
       ];
     }
 
-    let textSearchUsed = false;
-    if (query.search) {
-      const term = query.search.trim();
-      if (term) {
-        filter.$text = { $search: term };
-        textSearchUsed = true;
-      }
-    }
+    const term = query.search?.trim();
+    if (term) filter._id = { $in: await this.searchIds(term) };
 
-    let mongoQuery = this.docModel.find(filter);
-    if (!textSearchUsed && query.search) {
-      const regex = new RegExp(query.search, 'i');
-      mongoQuery = this.docModel.find({
-        ...filter,
-        $or: [
-          { documentNumber: regex },
-          { title: regex },
-          { classification: regex },
-          { author: regex },
-          { sponsor: regex },
-          { status: regex },
-          { remarks: regex },
-        ],
-      });
-    }
+    const mongoQuery = this.docModel.find(filter);
+    // populate() would add createdBy back into a field selection, so the public query skips it.
+    if (options.publicOnly) mongoQuery.select(PUBLIC_FIELDS);
+    else mongoQuery.populate('createdBy', 'fullName username');
 
     const sort: any = query.sort ? this.parseSort(query.sort) : { createdAt: -1 };
 
     const [data, total] = await Promise.all([
-      mongoQuery.clone().sort(sort).skip((page - 1) * limit).limit(limit).populate('createdBy', 'fullName username').exec(),
+      mongoQuery.clone().sort(sort).skip((page - 1) * limit).limit(limit).exec(),
       this.docModel.countDocuments(mongoQuery.getFilter()).exec(),
     ]);
 
@@ -152,6 +195,7 @@ export class LegislationService {
       .populate('createdBy', 'fullName username')
       .populate('updatedBy', 'fullName username')
       .populate('reviewedBy', 'fullName username')
+      .populate('stageHistory.changedBy', 'fullName username')
       .exec();
     if (!doc) throw new NotFoundException('Legislation not found');
     return doc;
@@ -172,6 +216,61 @@ export class LegislationService {
     return doc;
   }
 
+  async updateStage(id: string, dto: UpdateStageDto, userId: string) {
+    const doc = await this.findById(id);
+    const date = dto.date ? new Date(dto.date) : new Date();
+    const previous = doc.stage;
+    doc.stage = dto.stage;
+    doc.stageHistory.push({ stage: dto.stage, date, note: dto.note?.trim() || null, changedBy: userId as any });
+
+    const dateField = STAGE_DATE_FIELD[dto.stage]?.(doc.documentType);
+    if (dateField && !doc[dateField]) (doc as any)[dateField] = date;
+
+    doc.updatedBy = userId as any;
+    await doc.save();
+    await this.auditService.log(
+      userId,
+      'UPDATE',
+      'LegislativeDocument',
+      doc._id,
+      `Moved ${doc.documentType} ${doc.documentNumber} to ${dto.stage}`,
+      { stage: { old: previous, new: dto.stage } },
+    );
+    return this.findById(id);
+  }
+
+  async setVisibility(id: string, isPublic: boolean, userId: string) {
+    const doc = await this.findById(id);
+    if (isPublic && doc.approvalStatus !== ApprovalStatus.APPROVED) {
+      throw new BadRequestException('Approve the record before releasing it to the public.');
+    }
+    const previous = doc.isPublic;
+    doc.isPublic = isPublic;
+    doc.updatedBy = userId as any;
+    await doc.save();
+    await this.auditService.log(
+      userId,
+      isPublic ? 'PUBLISH' : 'UNPUBLISH',
+      'LegislativeDocument',
+      doc._id,
+      `${isPublic ? 'Released' : 'Withdrew'} ${doc.documentType} ${doc.documentNumber} ${isPublic ? 'to' : 'from'} the public portal`,
+      { isPublic: { old: previous, new: isPublic } },
+    );
+    return this.findById(id);
+  }
+
+  // A record as the public sees it, or 404 when it is not (or no longer) released.
+  async findPublicById(id: string) {
+    if (!Types.ObjectId.isValid(id)) throw new NotFoundException('Record not found');
+    const doc = await this.docModel
+      .findOne({ _id: id, isPublic: true, approvalStatus: { $nin: [ApprovalStatus.PENDING, ApprovalStatus.REJECTED] } })
+      .select(PUBLIC_FIELDS)
+      .lean()
+      .exec();
+    if (!doc) throw new NotFoundException('Record not found');
+    return doc;
+  }
+
   async remove(id: string, userId: string) {
     const doc = await this.findById(id);
     await this.docModel.deleteOne({ _id: id }).exec();
@@ -179,8 +278,11 @@ export class LegislationService {
     return { success: true };
   }
 
-  async distinctYears() {
-    const years = await this.docModel.distinct('year').exec();
+  async distinctYears(publicOnly = false) {
+    const filter = publicOnly
+      ? { isPublic: true, approvalStatus: { $nin: [ApprovalStatus.PENDING, ApprovalStatus.REJECTED] } }
+      : {};
+    const years = await this.docModel.distinct('year', filter).exec();
     return years.sort((a, b) => b - a);
   }
 

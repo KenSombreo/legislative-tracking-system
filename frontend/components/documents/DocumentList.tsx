@@ -6,12 +6,27 @@ import { DocumentFile } from "../../lib/types";
 import { apiClient } from "../../lib/api/client";
 import { hasRole } from "../../lib/auth";
 
+const TEXT_STATUS: Record<string, { label: string; cls: string }> = {
+  PENDING: { label: "Indexing text…", cls: "bg-gray-100 text-gray-600" },
+  TEXT: { label: "Searchable", cls: "bg-emerald-50 text-emerald-700" },
+  OCR: { label: "Searchable (OCR)", cls: "bg-emerald-50 text-emerald-700" },
+  NO_TEXT: { label: "Scanned, not searchable", cls: "bg-amber-50 text-amber-800" },
+  FAILED: { label: "Text unreadable", cls: "bg-red-50 text-red-700" },
+};
+
+// Files saved before the per-file flag existed count as public only when they are the main document.
+function fileIsPublic(doc: DocumentFile) {
+  return doc.isPublic ?? doc.documentCategory === "MAIN_DOCUMENT";
+}
+
 export default function DocumentList({
   documents,
   onDelete,
+  onTogglePublic,
 }: {
   documents: DocumentFile[];
   onDelete?: (doc: DocumentFile) => void;
+  onTogglePublic?: (doc: DocumentFile, isPublic: boolean) => void;
 }) {
   const [preview, setPreview] = useState<DocumentFile | null>(null);
 
@@ -31,6 +46,28 @@ export default function DocumentList({
                 <p className="text-xs text-gray-400">
                   {doc.documentCategory.replace(/_/g, " ")} · {(doc.fileSize / 1024).toFixed(1)} KB
                 </p>
+                <div className="mt-0.5 flex flex-wrap gap-1">
+                  {doc.textStatus && TEXT_STATUS[doc.textStatus] && (
+                    <span className={`rounded px-1.5 py-px text-[10px] font-medium ${TEXT_STATUS[doc.textStatus].cls}`}>
+                      {TEXT_STATUS[doc.textStatus].label}
+                    </span>
+                  )}
+                  {onTogglePublic ? (
+                    <button
+                      onClick={() => onTogglePublic(doc, !fileIsPublic(doc))}
+                      title="Whether the public portal shows this file (once the record is released)"
+                      className={`rounded px-1.5 py-px text-[10px] font-medium ${
+                        fileIsPublic(doc) ? "bg-sky-50 text-sky-800 hover:bg-sky-100" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                      }`}
+                    >
+                      {fileIsPublic(doc) ? "Public file · make internal" : "Internal file · make public"}
+                    </button>
+                  ) : (
+                    <span className="rounded bg-gray-100 px-1.5 py-px text-[10px] font-medium text-gray-600">
+                      {fileIsPublic(doc) ? "Public file" : "Internal file"}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-3">

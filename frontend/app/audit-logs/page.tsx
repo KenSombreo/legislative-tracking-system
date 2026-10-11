@@ -8,7 +8,7 @@ import { AuditLog, PaginatedResponse, UserRef } from "../../lib/types";
 import { getUser } from "../../lib/auth";
 
 function userLabel(u: UserRef | string | null) {
-  if (!u) return "System";
+  if (!u) return "System / public";
   if (typeof u === "string") return u;
   return u.fullName || u.username;
 }

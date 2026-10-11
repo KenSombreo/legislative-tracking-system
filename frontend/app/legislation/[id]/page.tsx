@@ -9,10 +9,13 @@ import DocumentUpload from "../../../components/documents/DocumentUpload";
 import DocumentList from "../../../components/documents/DocumentList";
 import StatusBadge from "../../../components/ui/StatusBadge";
 import ClassificationBadge from "../../../components/ui/ClassificationBadge";
-import { apiClient, ApiError } from "../../../lib/api/client";
+import StatusTracker from "../../../components/legislation/StatusTracker";
+import QrCode from "../../../components/ui/QrCode";
+import { apiClient, ApiError, publicPageUrl } from "../../../lib/api/client";
 import { hasRole } from "../../../lib/auth";
 import { Legislation, DocumentFile, UserRef } from "../../../lib/types";
 import { DOCUMENT_TYPE_LABELS, getRelevantFieldsForType } from "../../../lib/config/legislationFields";
+import { documentLabel } from "../../../lib/stages";
 
 function formatDate(value: string | null | undefined) {
   if (!value) return "—";
@@ -95,6 +98,34 @@ export default function LegislationDetailPage() {
       setError(err instanceof ApiError ? err.message : `Failed to ${decision}`);
     }
   };
+
+  const updateStage = async (body: { stage: string; date?: string; note?: string }) => {
+    try {
+      setItem(await apiClient.patch<Legislation>(`/legislation/${item._id}/stage`, body));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to update stage");
+    }
+  };
+
+  const setPublic = async (isPublic: boolean) => {
+    try {
+      setItem(await apiClient.patch<Legislation>(`/legislation/${item._id}/visibility`, { isPublic }));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to change public access");
+    }
+  };
+
+  const setFilePublic = async (doc: DocumentFile, isPublic: boolean) => {
+    try {
+      await apiClient.patch(`/documents/${doc._id}/visibility`, { isPublic });
+      load();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to change file access");
+    }
+  };
+
+  const publicUrl = publicPageUrl(`/public/legislation/${item._id}`);
+  const canRelease = !item.approvalStatus || item.approvalStatus === "APPROVED";
 
   return (
     <ProtectedShell>
@@ -188,17 +219,64 @@ export default function LegislationDetailPage() {
           </div>
 
           <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">Status tracker</h2>
+            <StatusTracker item={item} onUpdate={hasRole("ADMIN", "STAFF") ? updateStage : undefined} />
+          </div>
+
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
             <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">Documents</h2>
             {hasRole("ADMIN", "STAFF") && (
               <div className="mb-4">
                 <DocumentUpload legislativeDocumentId={item._id} onUploaded={load} />
               </div>
             )}
-            <DocumentList documents={documents} onDelete={handleDeleteDoc} />
+            <DocumentList
+              documents={documents}
+              onDelete={handleDeleteDoc}
+              onTogglePublic={isAdmin ? setFilePublic : undefined}
+            />
           </div>
         </div>
 
         <div className="space-y-6">
+          <div className="rounded-lg border border-gray-200 bg-white p-6">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">Public portal &amp; QR</h2>
+            {item.isPublic ? (
+              <>
+                <p className="mb-4 text-xs text-emerald-700">
+                  Released: shown on the public kiosk. Scanning the QR code opens this record on a phone.
+                </p>
+                <QrCode url={publicUrl} caption={`${documentLabel(item)} (${item.year})`} />
+                <a
+                  href={publicUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 block text-center text-xs text-navy-700 hover:underline"
+                >
+                  Open public page
+                </a>
+              </>
+            ) : (
+              <p className="text-xs text-gray-600">
+                Not released. The public kiosk and QR link do not show this record
+                {canRelease ? "." : " (it must be approved first)."}
+              </p>
+            )}
+            {isAdmin && (
+              <button
+                onClick={() => setPublic(!item.isPublic)}
+                disabled={!item.isPublic && !canRelease}
+                className={`mt-4 w-full rounded-md px-3 py-2 text-xs font-semibold disabled:opacity-50 ${
+                  item.isPublic
+                    ? "border border-red-300 bg-white text-red-700 hover:bg-red-50"
+                    : "bg-navy-900 text-white hover:bg-navy-800"
+                }`}
+              >
+                {item.isPublic ? "Withdraw from public portal" : "Release to public portal"}
+              </button>
+            )}
+          </div>
+
           <div className="rounded-lg border border-gray-200 bg-white p-6">
             <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-gray-500">Audit History</h2>
             <dl className="space-y-3 text-sm">

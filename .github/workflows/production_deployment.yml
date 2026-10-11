@@ -48,6 +48,7 @@ jobs:
           push: true
           build-args: |
             API_INTERNAL_URL=http://backend:3001
+            NEXT_PUBLIC_SITE_URL=${{ vars.PUBLIC_SITE_URL }}
           tags: |
             ${{ env.NAMESPACE }}/legislative-tracking-web:latest
             ${{ env.NAMESPACE }}/legislative-tracking-web:${{ env.TAG }}

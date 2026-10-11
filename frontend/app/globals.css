@@ -22,4 +22,71 @@ body {
   .card {
     @apply rounded-lg border border-gray-200 bg-white;
   }
+
+  /* Public portal / kiosk. Sizes are in rem so the text-size buttons scale everything. */
+  .pub-card {
+    @apply rounded-xl border border-gray-200 bg-white p-5 sm:p-6;
+  }
+  .pub-muted {
+    @apply text-gray-700;
+  }
+  .pub-label {
+    @apply mb-1.5 block text-base font-semibold text-navy-900;
+  }
+  .pub-input {
+    @apply min-h-[3rem] w-full rounded-lg border-2 border-gray-400 bg-white px-4 py-2 text-lg text-navy-900 placeholder:text-gray-500 focus:border-navy-900 focus:outline-none;
+  }
+  .pub-btn {
+    @apply inline-flex min-h-[3rem] items-center justify-center gap-2 rounded-lg bg-navy-900 px-5 py-2 text-lg font-semibold text-white hover:bg-navy-700 disabled:opacity-50;
+  }
+  .pub-btn-outline {
+    @apply inline-flex min-h-[3rem] items-center justify-center gap-2 rounded-lg border-2 border-navy-900 bg-white px-5 py-2 text-lg font-semibold text-navy-900 hover:bg-navy-50;
+  }
+  .pub-link {
+    @apply font-semibold text-navy-700 underline underline-offset-2 hover:text-navy-900;
+  }
+}
+
+.public-portal :focus-visible {
+  outline: 4px solid #d29a2a;
+  outline-offset: 2px;
+}
+
+/* High-contrast mode for low-vision visitors. */
+.public-portal.hc,
+.public-portal.hc .pub-card,
+.public-portal.hc header,
+.public-portal.hc .pub-input,
+.public-portal.hc .pub-btn-outline {
+  background: #000 !important;
+  color: #fff !important;
+  border-color: #fff !important;
+}
+.public-portal.hc .pub-muted,
+.public-portal.hc .pub-label,
+.public-portal.hc p,
+.public-portal.hc h1,
+.public-portal.hc h2,
+.public-portal.hc h3,
+.public-portal.hc dt,
+.public-portal.hc dd,
+.public-portal.hc li,
+.public-portal.hc span,
+.public-portal.hc label,
+.public-portal.hc strong {
+  color: #fff !important;
+}
+.public-portal.hc a,
+.public-portal.hc .pub-link {
+  color: #ffe14d !important;
+}
+.public-portal.hc .pub-btn {
+  background: #ffe14d !important;
+  color: #000 !important;
+}
+.public-portal.hc .pub-btn * {
+  color: #000 !important;
+}
+.public-portal.hc ::placeholder {
+  color: #ccc !important;
 }

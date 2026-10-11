@@ -10,8 +10,65 @@ export interface DocumentFile {
   storagePath: string;
   fileUrl: string;
   documentCategory: "MAIN_DOCUMENT" | "SUPPORTING_DOCUMENT" | "ATTACHMENT";
+  isPublic?: boolean;
+  textStatus?: "PENDING" | "TEXT" | "OCR" | "NO_TEXT" | "FAILED" | "NOT_APPLICABLE";
   uploadedBy?: string;
   createdAt: string;
+}
+
+export interface StageEntry {
+  stage: string;
+  date: string;
+  note?: string | null;
+  changedBy?: UserRef | string | null;
+}
+
+// What the public portal gets for a record: no remarks, encoders or internal notes.
+export type PublicLegislation = Pick<
+  Legislation,
+  | "_id"
+  | "documentType"
+  | "documentNumber"
+  | "year"
+  | "title"
+  | "classification"
+  | "status"
+  | "dateEnacted"
+  | "dateAdopted"
+  | "dateApprovedByLCE"
+  | "dateEnactedApprovedBySP"
+  | "author"
+  | "sponsor"
+  | "spResolutionNumber"
+  | "sector"
+  | "onlineLink"
+  | "stage"
+  | "stageHistory"
+  | "updatedAt"
+> & {
+  documents?: Pick<DocumentFile, "_id" | "originalFileName" | "mimeType" | "fileSize" | "documentCategory" | "textStatus">[];
+};
+
+export type RequestStatus = "PENDING" | "PROCESSING" | "READY" | "RELEASED" | "DENIED";
+
+export interface DocumentRequest {
+  _id: string;
+  referenceCode: string;
+  requesterName: string;
+  contactNumber: string | null;
+  email: string | null;
+  address: string | null;
+  requestedDocuments: string;
+  legislativeDocumentId: Pick<Legislation, "_id" | "documentType" | "documentNumber" | "title"> | string | null;
+  purpose: string;
+  copies: number;
+  certifiedTrueCopy: boolean;
+  status: RequestStatus;
+  responseMessage: string | null;
+  internalNotes: string | null;
+  handledBy: UserRef | string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface UserRef {
@@ -39,6 +96,9 @@ export interface Legislation {
   sector: string | null;
   onlineLink: string | null;
   documents: DocumentFile[] | string[];
+  stage?: string | null;
+  stageHistory?: StageEntry[];
+  isPublic?: boolean;
   approvalStatus?: ApprovalStatus;
   rejectionReason?: string | null;
   reviewedBy?: UserRef | string | null;

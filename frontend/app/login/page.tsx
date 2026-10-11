@@ -71,6 +71,13 @@ export default function LoginPage() {
             {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
+
+        <p className="mt-6 border-t border-gray-100 pt-4 text-center text-sm text-gray-600">
+          Looking for an ordinance or resolution?{" "}
+          <a href="/public" className="font-medium text-navy-700 hover:underline">
+            Browse public records
+          </a>
+        </p>
       </div>
     </div>
   );

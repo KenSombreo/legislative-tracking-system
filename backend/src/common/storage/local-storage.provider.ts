@@ -41,4 +41,15 @@ export class LocalStorageProvider implements StorageProvider {
     const fullPath = path.join(this.basePath, storagePath);
     return fs.createReadStream(fullPath);
   }
+
+  async read(storagePath: string): Promise<Buffer> {
+    return fs.promises.readFile(path.join(this.basePath, storagePath));
+  }
+
+  async replace(storagePath: string, buffer: Buffer): Promise<void> {
+    const fullPath = path.join(this.basePath, storagePath);
+    const tmpPath = `${fullPath}.tmp`;
+    await fs.promises.writeFile(tmpPath, buffer);
+    await fs.promises.rename(tmpPath, fullPath);
+  }
 }

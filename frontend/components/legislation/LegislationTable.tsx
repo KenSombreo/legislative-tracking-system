@@ -6,6 +6,7 @@ import { Legislation } from "../../lib/types";
 import StatusBadge from "../ui/StatusBadge";
 import ClassificationBadge from "../ui/ClassificationBadge";
 import { DOCUMENT_TYPE_LABELS } from "../../lib/config/legislationFields";
+import { TRACKING_STAGES, currentStage, currentStageIndex, stageLabel } from "../../lib/tracking";
 
 export default function LegislationTable({
   items,
@@ -56,6 +57,9 @@ export default function LegislationTable({
               </td>
               <td className="px-4 py-2">
                 <StatusBadge status={item.status} />
+                <p className="mt-0.5 whitespace-nowrap text-[11px] text-gray-500" title="Tracker stage">
+                  {currentStageIndex(item) + 1}/{TRACKING_STAGES.length} · {stageLabel(currentStage(item))}
+                </p>
               </td>
               <td className="px-4 py-2">{item.author || item.sponsor || "—"}</td>
               <td className="px-4 py-2">

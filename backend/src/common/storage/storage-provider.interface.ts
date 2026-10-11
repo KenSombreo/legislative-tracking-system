@@ -8,6 +8,9 @@ export interface StorageProvider {
   getUrl(storagePath: string): string;
   delete(storagePath: string): Promise<void>;
   readStream(storagePath: string): NodeJS.ReadableStream;
+  read(storagePath: string): Promise<Buffer>;
+  // Swaps a stored file's contents in place (e.g. for its OCR'd version), keeping its path.
+  replace(storagePath: string, buffer: Buffer): Promise<void>;
 }
 
 export const STORAGE_PROVIDER = 'STORAGE_PROVIDER';

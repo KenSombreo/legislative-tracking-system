@@ -4,6 +4,8 @@ import {
   Delete,
   Get,
   Param,
+  ParseBoolPipe,
+  Patch,
   Post,
   Query,
   Res,
@@ -71,6 +73,18 @@ export class DocumentsController {
     res.setHeader('Content-Disposition', `${disposition}; filename="${doc.originalFileName}"`);
     const stream = this.documentsService.getStorageProvider().readStream(doc.storagePath);
     stream.pipe(res);
+  }
+
+  @Patch(':id/visibility')
+  @Roles(UserRole.ADMIN)
+  setVisibility(@Param('id') id: string, @Body('isPublic', ParseBoolPipe) isPublic: boolean, @CurrentUser() user: any) {
+    return this.documentsService.setVisibility(id, isPublic, user._id);
+  }
+
+  @Post(':id/reprocess-text')
+  @Roles(UserRole.STAFF, UserRole.ADMIN)
+  reprocessText(@Param('id') id: string) {
+    return this.documentsService.reprocessText(id);
   }
 
   @Delete(':id')

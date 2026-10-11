@@ -36,7 +36,7 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
     cache: "no-store",
   });
 
-  if (res.status === 401) {
+  if (res.status === 401 && !skipAuth) {
     clearSession();
     if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
       window.location.href = "/login";
@@ -71,3 +71,17 @@ export const apiClient = {
     return token ? `${API_URL}${path}${separator}token=${encodeURIComponent(token)}` : `${API_URL}${path}`;
   },
 };
+
+// The public portal (kiosk and QR pages): never sends the staff login, never redirects to /login.
+export const publicApi = {
+  get: <T>(path: string) => request<T>(`/public${path}`, { method: "GET", skipAuth: true }),
+  post: <T>(path: string, body?: any) => request<T>(`/public${path}`, { method: "POST", body, skipAuth: true }),
+  fileUrl: (path: string) => `${API_URL}/public${path}`,
+};
+
+// Absolute link to a public-portal page, for QR codes. NEXT_PUBLIC_SITE_URL is the address phones
+// can reach (the kiosk itself may be browsing via localhost or an internal IP).
+export function publicPageUrl(path: string) {
+  const base = process.env.NEXT_PUBLIC_SITE_URL || (typeof window !== "undefined" ? window.location.origin : "");
+  return `${base.replace(/\/$/, "")}${path}`;
+}

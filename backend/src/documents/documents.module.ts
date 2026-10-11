@@ -3,6 +3,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { DocumentFile, DocumentFileSchema } from './schemas/document-file.schema';
 import { DocumentsService } from './documents.service';
 import { DocumentsController } from './documents.controller';
+import { TextExtractionService } from './text-extraction.service';
 import { StorageModule } from '../common/storage/storage.module';
 import { LegislationModule } from '../legislation/legislation.module';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
@@ -15,6 +16,7 @@ import { AuditLogsModule } from '../audit-logs/audit-logs.module';
     AuditLogsModule,
   ],
   controllers: [DocumentsController],
-  providers: [DocumentsService],
+  providers: [DocumentsService, TextExtractionService],
+  exports: [DocumentsService, StorageModule],
 })
 export class DocumentsModule {}

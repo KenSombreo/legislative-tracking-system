@@ -14,6 +14,9 @@ import { SbMembersModule } from './sb-members/sb-members.module';
 import { MinutesModule } from './minutes/minutes.module';
 import { CommitteeReportsModule } from './committee-reports/committee-reports.module';
 import { CalendarModule } from './calendar/calendar.module';
+import { DocumentRequestsModule } from './document-requests/document-requests.module';
+import { PublicModule } from './public/public.module';
+import { BackupModule } from './backup/backup.module';
 import { HealthController } from './health/health.controller';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 
@@ -50,6 +53,9 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
     MinutesModule,
     CommitteeReportsModule,
     CalendarModule,
+    DocumentRequestsModule,
+    PublicModule,
+    BackupModule,
   ],
   controllers: [HealthController],
   providers: [

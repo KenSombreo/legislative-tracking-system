@@ -4,10 +4,14 @@ import { LegislativeDocument, LegislativeDocumentSchema } from './schemas/legisl
 import { LegislationService } from './legislation.service';
 import { LegislationController } from './legislation.controller';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
+import { DocumentFile, DocumentFileSchema } from '../documents/schemas/document-file.schema';
 
 @Module({
   imports: [
-    MongooseModule.forFeature([{ name: LegislativeDocument.name, schema: LegislativeDocumentSchema }]),
+    MongooseModule.forFeature([
+      { name: LegislativeDocument.name, schema: LegislativeDocumentSchema },
+      { name: DocumentFile.name, schema: DocumentFileSchema },
+    ]),
     AuditLogsModule,
   ],
   controllers: [LegislationController],

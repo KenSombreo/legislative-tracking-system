@@ -23,6 +23,7 @@ const ADMIN_NAV = [
   { href: "/approvals", label: "Pending approvals", badge: true },
   { href: "/users", label: "User accounts" },
   { href: "/audit-logs", label: "Activity log" },
+  { href: "/backup", label: "Backup" },
 ];
 
 export default function Sidebar() {
@@ -31,6 +32,7 @@ export default function Sidebar() {
   const isAdmin = user?.role === "ADMIN";
   const canUpload = user?.role === "ADMIN" || user?.role === "STAFF";
   const [pendingCount, setPendingCount] = useState(0);
+  const [openRequests, setOpenRequests] = useState(0);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -43,6 +45,18 @@ export default function Sidebar() {
     window.addEventListener("approvals:changed", refresh);
     return () => window.removeEventListener("approvals:changed", refresh);
   }, [isAdmin]);
+
+  useEffect(() => {
+    if (!canUpload) return;
+    const refresh = () =>
+      apiClient
+        .get<{ count: number }>("/document-requests/open-count")
+        .then((res) => setOpenRequests(res.count))
+        .catch(() => {});
+    refresh();
+    window.addEventListener("requests:changed", refresh);
+    return () => window.removeEventListener("requests:changed", refresh);
+  }, [canUpload]);
 
   const linkClass = (href: string) => {
     const active = pathname === href || pathname?.startsWith(href + "/");
@@ -75,6 +89,22 @@ export default function Sidebar() {
             + Upload document
           </Link>
         )}
+        {canUpload && (
+          <Link href="/document-requests" className={`${linkClass("/document-requests")} flex items-center justify-between`}>
+            <span>Document requests</span>
+            {openRequests > 0 && (
+              <span className="rounded-full bg-gold-500 px-1.5 text-[10px] font-semibold text-navy-950">{openRequests}</span>
+            )}
+          </Link>
+        )}
+        <a
+          href="/public"
+          target="_blank"
+          rel="noreferrer"
+          className="block rounded-md px-3 py-2 text-[13px] text-gray-200 hover:bg-navy-800 hover:text-white"
+        >
+          Public portal ↗
+        </a>
 
         {isAdmin && (
           <>

@@ -4,6 +4,7 @@ import { CreateLegislationDto } from './dto/create-legislation.dto';
 import { UpdateLegislationDto } from './dto/update-legislation.dto';
 import { QueryLegislationDto } from './dto/query-legislation.dto';
 import { ReviewLegislationDto } from './dto/review-legislation.dto';
+import { UpdateStageDto, UpdateVisibilityDto } from './dto/update-stage.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { UserRole } from '../users/schemas/user.schema';
@@ -62,6 +63,18 @@ export class LegislationController {
   @Roles(UserRole.ADMIN)
   reject(@Param('id') id: string, @Body() dto: ReviewLegislationDto, @CurrentUser() user: any) {
     return this.legislationService.review(id, ApprovalStatus.REJECTED, user._id, dto.reason);
+  }
+
+  @Patch(':id/stage')
+  @Roles(UserRole.STAFF, UserRole.ADMIN)
+  updateStage(@Param('id') id: string, @Body() dto: UpdateStageDto, @CurrentUser() user: any) {
+    return this.legislationService.updateStage(id, dto, user._id);
+  }
+
+  @Patch(':id/visibility')
+  @Roles(UserRole.ADMIN)
+  setVisibility(@Param('id') id: string, @Body() dto: UpdateVisibilityDto, @CurrentUser() user: any) {
+    return this.legislationService.setVisibility(id, dto.isPublic, user._id);
   }
 
   @Patch(':id')

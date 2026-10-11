@@ -11,33 +11,19 @@
 import * as fs from 'fs';
 import mongoose from 'mongoose';
 import * as dotenv from 'dotenv';
+import { dumpDatabase, parseDump, serializeDump } from './common/backup/database-dump';
 
 dotenv.config();
 
-const { EJSON } = mongoose.mongo.BSON;
-
-interface Dump {
-  database: string;
-  exportedAt: string;
-  collections: Record<string, any[]>;
-}
-
 async function exportDb(db: mongoose.mongo.Db, file: string) {
-  const dump: Dump = { database: db.databaseName, exportedAt: new Date().toISOString(), collections: {} };
-  const collections = (await db.listCollections({}, { nameOnly: true }).toArray())
-    .map((c) => c.name)
-    .filter((name) => !name.startsWith('system.'))
-    .sort();
-  for (const name of collections) {
-    dump.collections[name] = await db.collection(name).find().toArray();
-    console.log(`  ${name}: ${dump.collections[name].length}`);
-  }
-  fs.writeFileSync(file, EJSON.stringify(dump, { relaxed: false }));
+  const dump = await dumpDatabase(db);
+  for (const [name, docs] of Object.entries(dump.collections)) console.log(`  ${name}: ${docs.length}`);
+  fs.writeFileSync(file, serializeDump(dump));
   console.log(`Wrote ${file}`);
 }
 
 async function importDb(db: mongoose.mongo.Db, file: string, replace: boolean) {
-  const dump = EJSON.parse(fs.readFileSync(file, 'utf8'), { relaxed: false }) as Dump;
+  const dump = parseDump(fs.readFileSync(file, 'utf8'));
   console.log(`Dump of "${dump.database}" taken ${dump.exportedAt}`);
 
   const entries = Object.entries(dump.collections);

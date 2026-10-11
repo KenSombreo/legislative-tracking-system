@@ -1,7 +1,8 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
-import { DocumentFile, DocumentCategory } from './schemas/document-file.schema';
+import { Model, Types } from 'mongoose';
+import { DocumentFile, DocumentCategory, PUBLIC_FILE_FILTER, TextStatus } from './schemas/document-file.schema';
+import { TextExtractionService } from './text-extraction.service';
 import { STORAGE_PROVIDER, StorageProvider } from '../common/storage/storage-provider.interface';
 import { LegislationService } from '../legislation/legislation.service';
 import { AuditService } from '../audit-logs/audit.service';
@@ -23,6 +24,7 @@ export class DocumentsService {
     @Inject(STORAGE_PROVIDER) private storageProvider: StorageProvider,
     private legislationService: LegislationService,
     private auditService: AuditService,
+    private textExtraction: TextExtractionService,
   ) {}
 
   async upload(
@@ -46,12 +48,56 @@ export class DocumentsService {
       storagePath,
       fileUrl,
       documentCategory,
+      // Supporting papers and attachments stay internal until someone releases them.
+      isPublic: documentCategory === DocumentCategory.MAIN_DOCUMENT,
+      textStatus: TextStatus.PENDING,
       uploadedBy: userId,
     });
     await docFile.save();
     await this.legislationService.addDocumentRef(legislativeDocumentId, docFile._id);
     await this.auditService.log(userId, 'CREATE', 'DocumentFile', docFile._id, `Uploaded ${file.originalname}`);
+    this.textExtraction.enqueue(String(docFile._id));
     return docFile;
+  }
+
+  async setVisibility(id: string, isPublic: boolean, userId: string) {
+    const doc = await this.findById(id);
+    doc.isPublic = isPublic;
+    await doc.save();
+    await this.auditService.log(
+      userId,
+      isPublic ? 'PUBLISH' : 'UNPUBLISH',
+      'DocumentFile',
+      doc._id,
+      `${isPublic ? 'Released' : 'Withdrew'} file ${doc.originalFileName} ${isPublic ? 'to' : 'from'} the public portal`,
+    );
+    return doc;
+  }
+
+  async reprocessText(id: string) {
+    const doc = await this.findById(id);
+    doc.textStatus = TextStatus.PENDING;
+    await doc.save();
+    this.textExtraction.enqueue(String(doc._id));
+    return doc;
+  }
+
+  // A file the public may open: released itself, and attached to a released record.
+  async findPublicById(id: string) {
+    if (!Types.ObjectId.isValid(id)) throw new NotFoundException('Document not found');
+    const doc = await this.docFileModel.findOne({ _id: id, ...PUBLIC_FILE_FILTER }).exec();
+    if (!doc) throw new NotFoundException('Document not found');
+    await this.legislationService.findPublicById(String(doc.legislativeDocumentId));
+    return doc;
+  }
+
+  findPublicForRecord(legislativeDocumentId: string) {
+    return this.docFileModel
+      .find({ legislativeDocumentId, ...PUBLIC_FILE_FILTER })
+      .select('originalFileName mimeType fileSize documentCategory textStatus createdAt')
+      .sort({ createdAt: 1 })
+      .lean()
+      .exec();
   }
 
   async findById(id: string) {
