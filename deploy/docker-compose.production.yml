@@ -30,6 +30,7 @@ services:
       FILE_STORAGE_PATH: storage
       # 25 MB, matching the limit shown on the upload screens.
       MAX_FILE_SIZE: "26214400"
+      MAX_MEDIA_SIZE: "209715200"
     extra_hosts:
       # Lets the container reach MongoDB running on the server.
       - "host.docker.internal:host-gateway"

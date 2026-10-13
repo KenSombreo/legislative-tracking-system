@@ -52,6 +52,18 @@ export class CreateLegislationDto {
 
   @IsString()
   @IsOptional()
+  proponent?: string;
+
+  @IsString()
+  @IsOptional()
+  committee?: string;
+
+  @IsString()
+  @IsOptional()
+  pdpPillar?: string;
+
+  @IsString()
+  @IsOptional()
   spResolutionNumber?: string;
 
   @IsString()

@@ -12,6 +12,7 @@ import { ReportsModule } from './reports/reports.module';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
 import { SbMembersModule } from './sb-members/sb-members.module';
 import { MinutesModule } from './minutes/minutes.module';
+import { ActivityDocsModule } from './activity-docs/activity-docs.module';
 import { CommitteeReportsModule } from './committee-reports/committee-reports.module';
 import { CalendarModule } from './calendar/calendar.module';
 import { DocumentRequestsModule } from './document-requests/document-requests.module';
@@ -51,6 +52,7 @@ import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
     AuditLogsModule,
     SbMembersModule,
     MinutesModule,
+    ActivityDocsModule,
     CommitteeReportsModule,
     CalendarModule,
     DocumentRequestsModule,

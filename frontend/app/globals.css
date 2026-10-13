@@ -34,16 +34,22 @@ body {
     @apply mb-1.5 block text-base font-semibold text-navy-900;
   }
   .pub-input {
-    @apply min-h-[3rem] w-full rounded-lg border-2 border-gray-400 bg-white px-4 py-2 text-lg text-navy-900 placeholder:text-gray-500 focus:border-navy-900 focus:outline-none;
+    @apply min-h-[3rem] w-full rounded-lg border-2 border-gray-400 bg-white px-4 py-2 text-lg text-navy-900 placeholder:text-gray-500 focus:border-sb-800 focus:outline-none;
   }
   .pub-btn {
-    @apply inline-flex min-h-[3rem] items-center justify-center gap-2 rounded-lg bg-navy-900 px-5 py-2 text-lg font-semibold text-white hover:bg-navy-700 disabled:opacity-50;
+    @apply inline-flex min-h-[3rem] items-center justify-center gap-2 rounded-lg bg-sb-800 px-5 py-2 text-lg font-semibold text-white hover:bg-sb-900 disabled:opacity-50;
   }
   .pub-btn-outline {
-    @apply inline-flex min-h-[3rem] items-center justify-center gap-2 rounded-lg border-2 border-navy-900 bg-white px-5 py-2 text-lg font-semibold text-navy-900 hover:bg-navy-50;
+    @apply inline-flex min-h-[3rem] items-center justify-center gap-2 rounded-lg border-2 border-sb-800 bg-white px-5 py-2 text-lg font-semibold text-sb-900 hover:bg-sb-50 disabled:opacity-50;
   }
   .pub-link {
-    @apply font-semibold text-navy-700 underline underline-offset-2 hover:text-navy-900;
+    @apply font-semibold text-sb-700 underline underline-offset-2 hover:text-sb-900;
+  }
+  .pub-badge {
+    @apply inline-flex items-center rounded-full border px-2.5 py-0.5 text-sm font-semibold;
+  }
+  .pub-chip {
+    @apply min-h-[2.75rem] rounded-lg border-2 px-3 py-1.5 text-left text-base font-semibold;
   }
 }
 
@@ -85,6 +91,23 @@ body {
   color: #000 !important;
 }
 .public-portal.hc .pub-btn * {
+  color: #000 !important;
+}
+.public-portal.hc .pub-badge,
+.public-portal.hc .pub-chip,
+.public-portal.hc nav a,
+.public-portal.hc .pub-strip {
+  background: #000 !important;
+  color: #fff !important;
+  border-color: #fff !important;
+}
+.public-portal.hc .pub-chip[aria-pressed="true"],
+.public-portal.hc nav a[aria-current="page"] {
+  background: #ffe14d !important;
+  color: #000 !important;
+}
+.public-portal.hc .pub-chip[aria-pressed="true"] *,
+.public-portal.hc nav a[aria-current="page"] * {
   color: #000 !important;
 }
 .public-portal.hc ::placeholder {

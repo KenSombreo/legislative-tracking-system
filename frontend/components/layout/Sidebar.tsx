@@ -15,6 +15,7 @@ const MAIN_NAV = [
   { href: "/appropriation-ordinances", label: "Appropriation ordinances" },
   { href: "/minutes", label: "Minutes of sessions" },
   { href: "/committee-reports", label: "Committee reports" },
+  { href: "/documentation", label: "Photo & video documentation" },
   { href: "/calendar", label: "Session calendar" },
   { href: "/members", label: "SB members" },
   { href: "/reports", label: "Reports" },

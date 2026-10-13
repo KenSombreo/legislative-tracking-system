@@ -1,6 +1,9 @@
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsIn, IsOptional, IsString } from 'class-validator';
 import { DocumentType } from '../../common/config/legislation-fields.config';
 import { ApprovalStatus } from '../schemas/legislative-document.schema';
+
+export const PROGRESS_VALUES = ['IN_PROGRESS', 'ENACTED', 'ADOPTED', 'FAILED', 'WITHDRAWN'] as const;
+export type Progress = (typeof PROGRESS_VALUES)[number];
 
 export class QueryLegislationDto {
   @IsOptional()
@@ -47,6 +50,11 @@ export class QueryLegislationDto {
   @IsString()
   @IsOptional()
   sort?: string;
+
+  // Where the measure ended up; see LegislationService.progressFilter.
+  @IsIn(PROGRESS_VALUES)
+  @IsOptional()
+  progress?: Progress;
 
   // ADMIN only; PENDING or REJECTED. Everyone else only sees approved records.
   @IsEnum(ApprovalStatus)

@@ -10,6 +10,8 @@ import { DOCUMENT_TYPE_LABELS } from "../../../../lib/config/legislationFields";
 import { documentLabel } from "../../../../lib/stages";
 import StatusTracker from "../../../../components/legislation/StatusTracker";
 import QrCode from "../../../../components/ui/QrCode";
+import WatchButton from "../../../../components/public/WatchButton";
+import { progressBadgeClass, progressLabel, progressOf } from "../../../../lib/public";
 
 function formatDate(value: string | null | undefined) {
   return value ? new Date(value).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }) : null;
@@ -47,7 +49,7 @@ export default function PublicRecordPage() {
         <p>{error}</p>
         <p className="mt-3">
           <Link href="/public" className="pub-link">
-            ← Back to search
+            ← Back to legislation
           </Link>
         </p>
       </div>
@@ -70,18 +72,25 @@ export default function PublicRecordPage() {
     ["Status", item.status],
   ];
   const label = documentLabel(item);
+  const progress = progressOf(item);
   const files = item.documents || [];
 
   return (
     <div className="space-y-6">
       <Link href="/public" className="pub-link text-lg">
-        ← Back to search
+        ← Back to legislation
       </Link>
 
       <section className="pub-card">
-        <p className="pub-muted text-base font-semibold uppercase tracking-wide">
-          {label} · {item.year}
-        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-mono text-base font-semibold text-sb-800">
+            {label} · {item.year}
+          </p>
+          <span className={`pub-badge ${progressBadgeClass(progress)}`}>{progressLabel(progress)}</span>
+          <span className="ml-auto">
+            <WatchButton id={item._id} label={label} />
+          </span>
+        </div>
         <h1 className="mt-1 font-serif text-3xl font-semibold leading-tight">{item.title || "Untitled"}</h1>
         <dl className="mt-5 grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
           {details

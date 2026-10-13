@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { FileSpreadsheet, Printer } from "lucide-react";
 import ProtectedShell from "../../components/layout/ProtectedShell";
 import StatCard from "../../components/dashboard/StatCard";
 import { apiClient, ApiError } from "../../lib/api/client";
-import { ReportSummary } from "../../lib/types";
+import { ActivityDoc, ReportSummary } from "../../lib/types";
+import { categoryLabel, isVideo } from "../../lib/activities";
 import { DocumentType } from "../../lib/config/legislationFields";
 import { documentLabel } from "../../lib/stages";
 import { currentStage, stageLabel } from "../../lib/tracking";
@@ -49,6 +51,7 @@ interface PeriodReport {
     documentRequests: number;
     documentRequestsReleased: number;
     inProcess: number;
+    activitiesDocumented: number;
   };
   byClassification: NameCount[];
   byAuthor: NameCount[];
@@ -66,6 +69,7 @@ interface PeriodReport {
     recommendation: string | null;
   }[];
   inProcess: Measure[];
+  documentation: ActivityDoc[];
 }
 
 type ReportKind = "accomplishment" | "legislative";
@@ -220,10 +224,17 @@ export default function ReportsPage() {
 function ReportHeader({ title, period }: { title: string; period: string }) {
   return (
     <header className="mb-6 text-center">
-      <p className="text-xs">Republic of the Philippines</p>
-      <p className="text-xs">Province of Southern Leyte</p>
-      <p className="text-xs">Municipality of Liloan</p>
-      <p className="mt-1 font-serif text-base font-semibold">OFFICE OF THE SANGGUNIANG BAYAN</p>
+      <div className="flex items-center justify-center gap-4 sm:gap-8">
+        <Image src="/logo.png" alt="Seal of the Sangguniang Bayan, Liloan, Southern Leyte" width={88} height={88} className="h-20 w-20 shrink-0" priority />
+        <div className="min-w-0">
+          <p className="text-xs">Republic of the Philippines</p>
+          <p className="text-xs">Province of Southern Leyte</p>
+          <p className="text-xs">Municipality of Liloan</p>
+          <p className="mt-1 font-serif text-base font-semibold">OFFICE OF THE SANGGUNIANG BAYAN</p>
+        </div>
+        <Image src="/bagong-pilipinas.png" alt="Bagong Pilipinas" width={86} height={80} className="h-20 w-auto shrink-0" priority />
+      </div>
+      <div className="mt-3 border-b-2 border-emerald-800" />
       <h2 className="mt-4 font-serif text-xl font-bold uppercase">{title}</h2>
       <p className="text-sm">{period}</p>
     </header>
@@ -294,6 +305,7 @@ function summaryRows(r: PeriodReport): [string, number][] {
     ["Committee reports submitted", t.committeeReports],
     ["Document requests received from the public", t.documentRequests],
     ["Document requests served (ready / released)", t.documentRequestsReleased],
+    ["Activities with photo / video documentation", t.activitiesDocumented ?? 0],
   ];
 }
 
@@ -345,7 +357,57 @@ function Accomplishment({ r }: { r: PeriodReport }) {
           rows={r.inProcess.map((m, i) => [i + 1, documentLabel(m), m.title || "—", m.author || m.sponsor || "—", stageLabel(currentStage(m))])}
         />
       </Section>
+      <Section n="VII" title="Photo / video documentation">
+        <Documentation list={r.documentation || []} />
+      </Section>
     </>
+  );
+}
+
+// Photos two to a row with captions, like the annex of a printed accomplishment report. Videos play
+// on screen; on paper they show as a labelled box, since they cannot be printed.
+function Documentation({ list }: { list: ActivityDoc[] }) {
+  if (list.length === 0)
+    return <p className="text-sm italic text-gray-500">No photo or video documentation for this period. Add it under “Photo &amp; video documentation”.</p>;
+  return (
+    <div className="space-y-5">
+      {list.map((a) => (
+        <div key={a._id}>
+          <p className="break-after-avoid text-xs font-semibold">
+            {a.title}
+            <span className="font-normal text-gray-600">
+              {" "}
+              · {fmt(a.date)} · {categoryLabel(a.category)}
+              {a.venue && ` · ${a.venue}`}
+            </span>
+          </p>
+          {a.description && <p className="mt-0.5 text-xs text-gray-700">{a.description}</p>}
+          <div className="mt-2 grid grid-cols-2 gap-3">
+            {a.media.map((m) => {
+              const src = apiClient.fileUrl(`/activity-docs/${a._id}/media/${m._id}`);
+              return (
+                <figure key={m._id} className="break-inside-avoid">
+                  {isVideo(m) ? (
+                    <>
+                      <video src={`${src}#t=0.5`} controls preload="metadata" playsInline className="aspect-[4/3] w-full rounded border border-gray-300 bg-black object-contain print:hidden" />
+                      <div className="hidden aspect-[4/3] w-full flex-col items-center justify-center rounded border border-gray-400 text-center text-xs print:flex">
+                        <span className="text-2xl">▶</span>
+                        Video: {m.originalFileName}
+                        <span className="text-[10px] text-gray-500">Digital copy on file at the Office of the SB Secretary</span>
+                      </div>
+                    </>
+                  ) : (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={src} alt={m.caption || a.title} className="aspect-[4/3] w-full rounded border border-gray-300 object-cover" />
+                  )}
+                  <figcaption className="mt-1 text-center text-[11px] italic">{m.caption || a.title}</figcaption>
+                </figure>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -464,6 +526,19 @@ function downloadCsv(kind: ReportKind, r: PeriodReport) {
       "Measures still in process",
       ["#", "No.", "Title", "Author / Sponsor", "Current stage"],
       r.inProcess.map((m, i) => [i + 1, documentLabel(m), m.title || "", m.author || m.sponsor || "", stageLabel(currentStage(m))]),
+    );
+    block(
+      "Photo / video documentation",
+      ["#", "Activity", "Date", "Kind", "Venue", "Photos", "Videos"],
+      (r.documentation || []).map((a, i) => [
+        i + 1,
+        a.title,
+        fmt(a.date),
+        categoryLabel(a.category),
+        a.venue || "",
+        a.media.filter((m) => !isVideo(m)).length,
+        a.media.filter(isVideo).length,
+      ]),
     );
   } else {
     block("By classification", ["Classification", "Number"], r.byClassification.map((c) => [c.name, c.count]));

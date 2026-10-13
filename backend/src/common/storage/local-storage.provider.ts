@@ -37,9 +37,9 @@ export class LocalStorageProvider implements StorageProvider {
     }
   }
 
-  readStream(storagePath: string): NodeJS.ReadableStream {
+  readStream(storagePath: string, range?: { start: number; end: number }): NodeJS.ReadableStream {
     const fullPath = path.join(this.basePath, storagePath);
-    return fs.createReadStream(fullPath);
+    return fs.createReadStream(fullPath, range);
   }
 
   async read(storagePath: string): Promise<Buffer> {

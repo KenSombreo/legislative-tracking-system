@@ -4,6 +4,7 @@ import { LegislativeDocument, LegislativeDocumentSchema } from '../legislation/s
 import { SessionMinutes, SessionMinutesSchema } from '../minutes/minutes.schema';
 import { CommitteeReport, CommitteeReportSchema } from '../committee-reports/committee-report.schema';
 import { DocumentRequest, DocumentRequestSchema } from '../document-requests/document-request.schema';
+import { ActivityDoc, ActivityDocSchema } from '../activity-docs/activity-doc.schema';
 import { ReportsService } from './reports.service';
 import { PeriodReportService } from './period-report.service';
 import { ReportsController } from './reports.controller';
@@ -15,6 +16,7 @@ import { ReportsController } from './reports.controller';
       { name: SessionMinutes.name, schema: SessionMinutesSchema },
       { name: CommitteeReport.name, schema: CommitteeReportSchema },
       { name: DocumentRequest.name, schema: DocumentRequestSchema },
+      { name: ActivityDoc.name, schema: ActivityDocSchema },
     ]),
   ],
   controllers: [ReportsController],

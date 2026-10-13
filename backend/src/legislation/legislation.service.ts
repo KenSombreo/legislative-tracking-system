@@ -5,7 +5,7 @@ import { ApprovalStatus, LegislativeDocument } from './schemas/legislative-docum
 import { UserRole } from '../users/schemas/user.schema';
 import { CreateLegislationDto } from './dto/create-legislation.dto';
 import { UpdateLegislationDto } from './dto/update-legislation.dto';
-import { QueryLegislationDto } from './dto/query-legislation.dto';
+import { Progress, QueryLegislationDto } from './dto/query-legislation.dto';
 import { DocumentType, getRequiredFieldsForType } from '../common/config/legislation-fields.config';
 import { AuditService } from '../audit-logs/audit.service';
 import { DocumentFile } from '../documents/schemas/document-file.schema';
@@ -27,6 +27,9 @@ export const PUBLIC_FIELDS = [
   'dateEnactedApprovedBySP',
   'author',
   'sponsor',
+  'proponent',
+  'committee',
+  'pdpPillar',
   'spResolutionNumber',
   'sector',
   'onlineLink',
@@ -42,6 +45,46 @@ const STAGE_DATE_FIELD: Partial<Record<TrackingStage, (type: DocumentType) => ke
   [TrackingStage.LCE_APPROVAL]: () => 'dateApprovedByLCE',
   [TrackingStage.EFFECTIVE]: (type) => (type === DocumentType.RESOLUTION ? null : 'dateEnactedApprovedBySP'),
 };
+
+const PUBLIC_ONLY = { isPublic: true, approvalStatus: { $nin: [ApprovalStatus.PENDING, ApprovalStatus.REJECTED] } };
+
+const FAILED_STATUS = /FAIL|LOST|DEFEAT|DENIED|DISAPPROV/i;
+const WITHDRAWN_STATUS = /WITHDR/i;
+const DONE_STAGES = [TrackingStage.THIRD_READING, TrackingStage.LCE_APPROVAL, TrackingStage.SP_REVIEW, TrackingStage.EFFECTIVE];
+
+// Passed 3rd reading (enacted / adopted). Records never moved on the tracker are judged from their
+// dates and status text, the same way frontend/lib/tracking.ts derives their stage.
+const PASSED = {
+  $or: [
+    { stage: { $in: DONE_STAGES } },
+    {
+      stage: { $in: [null] },
+      $or: [
+        { dateEnacted: { $ne: null } },
+        { dateAdopted: { $ne: null } },
+        { dateApprovedByLCE: { $ne: null } },
+        { dateEnactedApprovedBySP: { $ne: null } },
+        { status: /APPROV|ENACT|ADOPT|THIRD|3RD|POST|PUBLISH|EFFECT|ARCHIV|PANLALAWIGAN/i },
+      ],
+    },
+  ],
+};
+
+function progressFilter(progress: Progress): any {
+  const stopped = [{ status: FAILED_STATUS }, { status: WITHDRAWN_STATUS }];
+  switch (progress) {
+    case 'FAILED':
+      return { status: FAILED_STATUS };
+    case 'WITHDRAWN':
+      return { status: WITHDRAWN_STATUS };
+    case 'ENACTED':
+      return { documentType: { $ne: DocumentType.RESOLUTION }, ...PASSED };
+    case 'ADOPTED':
+      return { documentType: DocumentType.RESOLUTION, ...PASSED };
+    default:
+      return { $nor: [PASSED, ...stopped] };
+  }
+}
 
 @Injectable()
 export class LegislationService {
@@ -159,6 +202,8 @@ export class LegislationService {
         { dateAdopted: range },
       ];
     }
+
+    if (query.progress) filter.$and = [progressFilter(query.progress)];
 
     const term = query.search?.trim();
     if (term) filter._id = { $in: await this.searchIds(term) };
@@ -278,10 +323,21 @@ export class LegislationService {
     return { success: true };
   }
 
+  // Headline numbers and filter choices for the public portal's front page.
+  async publicSummary() {
+    const year = new Date().getFullYear();
+    const thisYear = { $gte: new Date(`${year}-01-01T00:00:00+08:00`), $lt: new Date(`${year + 1}-01-01T00:00:00+08:00`) };
+    const [inProgress, enactedThisYear, adoptedThisYear, classifications] = await Promise.all([
+      this.docModel.countDocuments({ ...PUBLIC_ONLY, ...progressFilter('IN_PROGRESS') }).exec(),
+      this.docModel.countDocuments({ ...PUBLIC_ONLY, documentType: { $ne: DocumentType.RESOLUTION }, dateEnacted: thisYear }).exec(),
+      this.docModel.countDocuments({ ...PUBLIC_ONLY, documentType: DocumentType.RESOLUTION, dateAdopted: thisYear }).exec(),
+      this.docModel.distinct('classification', { ...PUBLIC_ONLY, classification: { $nin: [null, ''] } }).exec(),
+    ]);
+    return { year, inProgress, enactedThisYear, adoptedThisYear, classifications: (classifications as string[]).sort() };
+  }
+
   async distinctYears(publicOnly = false) {
-    const filter = publicOnly
-      ? { isPublic: true, approvalStatus: { $nin: [ApprovalStatus.PENDING, ApprovalStatus.REJECTED] } }
-      : {};
+    const filter = publicOnly ? PUBLIC_ONLY : {};
     const years = await this.docModel.distinct('year', filter).exec();
     return years.sort((a, b) => b - a);
   }

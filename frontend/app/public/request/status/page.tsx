@@ -92,7 +92,7 @@ export default function RequestStatusPage() {
             <p className={`mt-4 inline-block rounded-lg px-4 py-2 text-xl font-bold ${status.cls}`}>{status.label}</p>
             <p className="mt-2 text-lg">{status.publicHint}</p>
             {result.responseMessage && (
-              <p className="mt-4 rounded-lg bg-navy-50 p-4 text-lg">
+              <p className="mt-4 rounded-lg bg-sb-50 p-4 text-lg">
                 <strong>Message from the SB office:</strong> {result.responseMessage}
               </p>
             )}

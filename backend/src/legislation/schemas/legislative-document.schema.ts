@@ -67,6 +67,15 @@ export class LegislativeDocument extends Document {
   @Prop({ type: String, default: null, index: true })
   sponsor: string | null;
 
+  @Prop({ type: String, default: null, index: true })
+  proponent: string | null;
+
+  @Prop({ type: String, default: null, index: true })
+  committee: string | null;
+
+  @Prop({ type: String, default: null, index: true })
+  pdpPillar: string | null;
+
   @Prop({ type: String, default: null })
   spResolutionNumber: string | null;
 

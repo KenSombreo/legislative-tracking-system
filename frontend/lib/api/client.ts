@@ -65,6 +65,35 @@ export const apiClient = {
   delete: <T>(path: string) => request<T>(path, { method: "DELETE" }),
   upload: <T>(path: string, formData: FormData) =>
     request<T>(path, { method: "POST", body: formData, isFormData: true }),
+  // Like upload, but reports progress (0–1) for large files such as videos. fetch cannot do that.
+  uploadWithProgress: <T>(path: string, formData: FormData, onProgress: (fraction: number) => void) =>
+    new Promise<T>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `${API_URL}${path}`);
+      const token = getToken();
+      if (token) xhr.setRequestHeader("Authorization", `Bearer ${token}`);
+      xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
+      xhr.onerror = () => reject(new ApiError(0, "Upload failed. Check the connection and try again."));
+      xhr.onload = () => {
+        let data: any = null;
+        try {
+          data = JSON.parse(xhr.responseText);
+        } catch {
+          // not JSON
+        }
+        if (xhr.status >= 200 && xhr.status < 300) return resolve(data as T);
+        if (xhr.status === 401) clearSession();
+        const message = data?.message
+          ? Array.isArray(data.message)
+            ? data.message.join(", ")
+            : data.message
+          : xhr.status === 413
+            ? "File is too large"
+            : `Upload failed with status ${xhr.status}`;
+        reject(new ApiError(xhr.status, message));
+      };
+      xhr.send(formData);
+    }),
   fileUrl: (path: string) => {
     const token = getToken();
     const separator = path.includes("?") ? "&" : "?";

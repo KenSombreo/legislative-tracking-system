@@ -5,6 +5,7 @@ import { LegislativeDocument } from '../legislation/schemas/legislative-document
 import { SessionMinutes } from '../minutes/minutes.schema';
 import { CommitteeReport } from '../committee-reports/committee-report.schema';
 import { DocumentRequest } from '../document-requests/document-request.schema';
+import { ActivityDoc } from '../activity-docs/activity-doc.schema';
 
 const APPROVED_ONLY = { approvalStatus: { $nin: ['PENDING', 'REJECTED'] } };
 
@@ -33,6 +34,7 @@ export class PeriodReportService {
     @InjectModel(SessionMinutes.name) private minutesModel: Model<SessionMinutes>,
     @InjectModel(CommitteeReport.name) private committeeModel: Model<CommitteeReport>,
     @InjectModel(DocumentRequest.name) private requestModel: Model<DocumentRequest>,
+    @InjectModel(ActivityDoc.name) private activityModel: Model<ActivityDoc>,
   ) {}
 
   async build(year: number, quarter?: number) {
@@ -43,7 +45,7 @@ export class PeriodReportService {
     const to = quarter && quarter < 4 ? phDate(year, quarter * 3 + 1) : phDate(year + 1, 1);
     const range = { $gte: from, $lt: to };
 
-    const [measures, approvedByLce, sessions, committeeReports, requests, inProcess] = await Promise.all([
+    const [measures, approvedByLce, sessions, committeeReports, requests, inProcess, documentation] = await Promise.all([
       this.docModel
         .find({ ...APPROVED_ONLY, $or: [{ dateEnacted: range }, { dateAdopted: range }] })
         .select('documentType documentNumber year title classification author sponsor status dateEnacted dateAdopted dateApprovedByLCE stage')
@@ -68,6 +70,13 @@ export class PeriodReportService {
         .find({ ...APPROVED_ONLY, dateEnacted: null, dateAdopted: null, createdAt: { $lt: to } })
         .select('documentType documentNumber year title author sponsor status stage stageHistory createdAt')
         .sort({ createdAt: 1 })
+        .lean()
+        .exec(),
+      // Photo / video documentation of activities in the period; only those with files.
+      this.activityModel
+        .find({ date: range, 'media.0': { $exists: true } })
+        .select('title date category venue description media')
+        .sort({ date: 1 })
         .lean()
         .exec(),
     ]);
@@ -103,6 +112,7 @@ export class PeriodReportService {
         documentRequests: requests.length,
         documentRequestsReleased: requests.filter((r) => r.status === 'RELEASED' || r.status === 'READY').length,
         inProcess: inProcess.length,
+        activitiesDocumented: documentation.length,
       },
       byClassification: countBy(measures, (m) => m.classification),
       byAuthor: countBy(measures, (m) => m.author || m.sponsor),
@@ -112,6 +122,7 @@ export class PeriodReportService {
       sessions,
       committeeReports,
       inProcess,
+      documentation,
     };
   }
 }

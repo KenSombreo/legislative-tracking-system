@@ -9,6 +9,10 @@ const nextConfig = {
   output: "standalone",
   // Browser API calls go to /api on this site and are forwarded to the API, so
   // only the frontend has to be reachable in production.
+  experimental: {
+    // Video uploads for activity documentation can take minutes on a slow connection (default is 30 s).
+    proxyTimeout: 10 * 60 * 1000,
+  },
   async rewrites() {
     return [{ source: "/api/:path*", destination: `${API_INTERNAL_URL}/api/:path*` }];
   },

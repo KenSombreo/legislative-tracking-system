@@ -8,6 +8,7 @@ import { apiClient, ApiError } from "../../../lib/api/client";
 import { getUser, isAuthenticated } from "../../../lib/auth";
 import { Legislation } from "../../../lib/types";
 import { DocumentType } from "../../../lib/config/legislationFields";
+import { PDP_PILLARS, SB_COMMITTEES, SB_MEMBERS } from "../../../lib/config/sbOptions";
 
 const TYPE_OPTIONS: { label: string; type: DocumentType | null }[] = [
   { label: "Ordinance", type: DocumentType.ORDINANCE },
@@ -98,8 +99,10 @@ function UploadDocumentInner() {
     year: String(currentYear),
     title: "",
     author: "",
+    proponent: "",
     coAuthors: "",
     committee: "",
+    pdpPillar: "",
     classification: "",
     sessionType: SESSION_TYPES[0],
     sessionNo: "",
@@ -127,6 +130,7 @@ function UploadDocumentInner() {
   const typeStatuses = forType(statuses);
   const typeClassifications = forType(classifications);
   const needsClassification = docType !== DocumentType.APPROPRIATION_ORDINANCE;
+  const isOrdinance = docType === DocumentType.ORDINANCE;
 
   const addFiles = (list: FileList | null) => {
     if (!list) return;
@@ -150,7 +154,6 @@ function UploadDocumentInner() {
     const remarks = [
       form.summary.trim(),
       form.coAuthors && `Co-authors: ${form.coAuthors}`,
-      form.committee && `Committee referred: ${form.committee}`,
       `Session: ${form.sessionType}${form.sessionNo ? ` (${form.sessionNo})` : ""}`,
       form.keywords && `Keywords: ${form.keywords}`,
     ]
@@ -167,6 +170,9 @@ function UploadDocumentInner() {
       [docType === DocumentType.RESOLUTION ? "sponsor" : "author"]: form.author.trim(),
     };
     if (needsClassification) payload.classification = form.classification;
+    if (form.committee) payload.committee = form.committee;
+    if (isOrdinance && form.proponent) payload.proponent = form.proponent;
+    if (isOrdinance && form.pdpPillar) payload.pdpPillar = form.pdpPillar;
     for (const d of DATE_FIELDS[docType]) {
       if (form[d.field]) payload[d.field] = form[d.field];
     }
@@ -287,14 +293,24 @@ function UploadDocumentInner() {
                 </div>
                 <div>
                   <label className="field-label">{docType === DocumentType.RESOLUTION ? "Sponsor" : "Author / Sponsor"} *</label>
-                  <input
-                    required
-                    value={form.author}
-                    onChange={(e) => update("author", e.target.value)}
-                    placeholder="SB member name"
-                    className="field-input"
-                  />
+                  <select required value={form.author} onChange={(e) => update("author", e.target.value)} className="field-input">
+                    <option value="">Select SB member...</option>
+                    {SB_MEMBERS.map((m) => (
+                      <option key={m}>{m}</option>
+                    ))}
+                  </select>
                 </div>
+                {isOrdinance && (
+                  <div>
+                    <label className="field-label">Proponent</label>
+                    <select value={form.proponent} onChange={(e) => update("proponent", e.target.value)} className="field-input">
+                      <option value="">Select SB member...</option>
+                      {SB_MEMBERS.map((m) => (
+                        <option key={m}>{m}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className="field-label">Co-authors</label>
                   <input
@@ -304,15 +320,26 @@ function UploadDocumentInner() {
                     className="field-input"
                   />
                 </div>
-                <div>
+                <div className="sm:col-span-3">
                   <label className="field-label">Committee referred</label>
-                  <input
-                    value={form.committee}
-                    onChange={(e) => update("committee", e.target.value)}
-                    placeholder="e.g. Appropriations"
-                    className="field-input"
-                  />
+                  <select value={form.committee} onChange={(e) => update("committee", e.target.value)} className="field-input">
+                    <option value="">Select committee...</option>
+                    {SB_COMMITTEES.map((c) => (
+                      <option key={c}>{c}</option>
+                    ))}
+                  </select>
                 </div>
+                {isOrdinance && (
+                  <div className="sm:col-span-2">
+                    <label className="field-label">PDP pillar</label>
+                    <select value={form.pdpPillar} onChange={(e) => update("pdpPillar", e.target.value)} className="field-input">
+                      <option value="">Select PDP pillar...</option>
+                      {PDP_PILLARS.map((p) => (
+                        <option key={p}>{p}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 {needsClassification && (
                   <div>
                     <label className="field-label">Subject / category *</label>

@@ -199,7 +199,7 @@ export default function PublicRequestPage() {
           </label>
         </div>
 
-        <p className="pub-muted rounded-lg bg-navy-50 p-4 text-base">
+        <p className="pub-muted rounded-lg bg-sb-50 p-4 text-base">
           Your personal information is used only to process this request, in line with the Data Privacy Act of 2012
           (RA 10173). It is not shown on the public portal.
         </p>

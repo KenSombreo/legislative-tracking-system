@@ -151,6 +151,20 @@ export default function LegislationForm({
                 rows={3}
                 className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
               />
+            ) : f.options ? (
+              <select
+                required={f.required}
+                value={form[f.field] || ""}
+                onChange={(e) => update(f.field, e.target.value)}
+                className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm"
+              >
+                <option value="">Select...</option>
+                {/* Keep an older free-text value selectable so editing doesn't silently drop it. */}
+                {form[f.field] && !f.options.includes(form[f.field]) && <option>{form[f.field]}</option>}
+                {f.options.map((o) => (
+                  <option key={o}>{o}</option>
+                ))}
+              </select>
             ) : (
               <input
                 required={f.required}

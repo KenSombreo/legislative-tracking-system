@@ -13,6 +13,16 @@ const config: Config = {
           600: "#2f4a78",
           50: "#eef2f8",
         },
+        // Green of the Sangguniang Bayan seal, used by the public portal.
+        sb: {
+          950: "#03261c",
+          900: "#06392b",
+          800: "#0a4f3c",
+          700: "#0b6b50",
+          600: "#11855f",
+          100: "#d6eee3",
+          50: "#edf7f2",
+        },
         paper: "#f5f4ef",
         gold: {
           400: "#e3b04b",

@@ -1,5 +1,11 @@
 import { Body, Controller, Get, HttpException, HttpStatus, Param, Post, Query, Req, Res } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
 import { Request, Response } from 'express';
+import { SbMember } from '../sb-members/sb-member.schema';
+import { CalendarEvent, CalendarEventType } from '../calendar/calendar-event.schema';
+import { ActivityDocsService } from '../activity-docs/activity-docs.service';
+import { streamMedia } from '../activity-docs/stream-media';
 import { Public } from '../common/decorators/public.decorator';
 import { LegislationService } from '../legislation/legislation.service';
 import { QueryLegislationDto } from '../legislation/dto/query-legislation.dto';
@@ -10,6 +16,15 @@ import { AuditService } from '../audit-logs/audit.service';
 
 const REQUEST_LIMIT = 5;
 const REQUEST_WINDOW_MS = 15 * 60 * 1000;
+
+const SESSION_TYPES = [CalendarEventType.REGULAR_SESSION, CalendarEventType.SPECIAL_SESSION];
+const EVENT_FIELDS = 'eventType title date startTime venue committee description';
+
+// Midnight today in the Philippines (UTC+8, no DST), as a UTC instant.
+function startOfTodayPh() {
+  const ph = new Date(Date.now() + 8 * 60 * 60 * 1000);
+  return new Date(Date.UTC(ph.getUTCFullYear(), ph.getUTCMonth(), ph.getUTCDate()) - 8 * 60 * 60 * 1000);
+}
 
 /**
  * Read-only endpoints for the public kiosk and the pages opened from QR codes. Only records an
@@ -26,6 +41,9 @@ export class PublicController {
     private documentsService: DocumentsService,
     private requestsService: DocumentRequestsService,
     private auditService: AuditService,
+    @InjectModel(SbMember.name) private memberModel: Model<SbMember>,
+    @InjectModel(CalendarEvent.name) private eventModel: Model<CalendarEvent>,
+    private activityDocs: ActivityDocsService,
   ) {}
 
   @Get('legislation')
@@ -36,6 +54,60 @@ export class PublicController {
   @Get('legislation/years')
   years() {
     return this.legislationService.distinctYears(true);
+  }
+
+  @Get('summary')
+  async summary() {
+    const [counts, nextSession] = await Promise.all([
+      this.legislationService.publicSummary(),
+      this.eventModel
+        .findOne({ eventType: { $in: SESSION_TYPES }, date: { $gte: startOfTodayPh() } })
+        .sort({ date: 1, startTime: 1 })
+        .select(EVENT_FIELDS)
+        .lean()
+        .exec(),
+    ]);
+    return { ...counts, nextSession };
+  }
+
+  // Photos and videos of activities the office has marked public.
+  @Get('activities')
+  activities() {
+    return this.activityDocs.listPublic();
+  }
+
+  @Get('activities/:id/media/:mediaId')
+  async activityMedia(
+    @Param('id') id: string,
+    @Param('mediaId') mediaId: string,
+    @Query('download') download: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    streamMedia(this.activityDocs, await this.activityDocs.getMedia(id, mediaId, true), download, req, res);
+  }
+
+  // Sitting members only; contact numbers and e-mail stay internal.
+  @Get('members')
+  members() {
+    return this.memberModel
+      .find({ isActive: true })
+      .sort({ sortOrder: 1, fullName: 1 })
+      .select('fullName position committees termStart termEnd')
+      .lean()
+      .exec();
+  }
+
+  // Upcoming sessions and hearings, and those of the last 90 days.
+  @Get('sessions')
+  async sessions() {
+    const today = startOfTodayPh();
+    const since = new Date(today.getTime() - 90 * 24 * 60 * 60 * 1000);
+    const [upcoming, past] = await Promise.all([
+      this.eventModel.find({ eventType: { $ne: CalendarEventType.OTHER }, date: { $gte: today } }).sort({ date: 1, startTime: 1 }).limit(50).select(EVENT_FIELDS).lean().exec(),
+      this.eventModel.find({ eventType: { $ne: CalendarEventType.OTHER }, date: { $gte: since, $lt: today } }).sort({ date: -1, startTime: -1 }).limit(50).select(EVENT_FIELDS).lean().exec(),
+    ]);
+    return { upcoming, past };
   }
 
   @Get('legislation/:id')

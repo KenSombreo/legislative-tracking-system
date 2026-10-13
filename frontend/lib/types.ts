@@ -39,6 +39,9 @@ export type PublicLegislation = Pick<
   | "dateEnactedApprovedBySP"
   | "author"
   | "sponsor"
+  | "proponent"
+  | "committee"
+  | "pdpPillar"
   | "spResolutionNumber"
   | "sector"
   | "onlineLink"
@@ -92,6 +95,9 @@ export interface Legislation {
   dateEnactedApprovedBySP: string | null;
   author: string | null;
   sponsor: string | null;
+  proponent?: string | null;
+  committee?: string | null;
+  pdpPillar?: string | null;
   spResolutionNumber: string | null;
   sector: string | null;
   onlineLink: string | null;
@@ -169,6 +175,30 @@ export interface CalendarEvent extends Tracked {
   venue: string | null;
   committee: string | null;
   description: string | null;
+}
+
+export type ActivityCategory = "SESSION" | "COMMITTEE_HEARING" | "PUBLIC_HEARING" | "OUTREACH" | "TRAINING" | "OTHER";
+
+export interface ActivityMedia {
+  _id: string;
+  storagePath: string;
+  originalFileName: string;
+  mimeType: string;
+  fileSize: number;
+  caption: string | null;
+}
+
+// Photo / video documentation of an SB activity.
+export interface ActivityDoc {
+  _id: string;
+  title: string;
+  date: string;
+  category: ActivityCategory;
+  venue: string | null;
+  description: string | null;
+  isPublic?: boolean;
+  media: ActivityMedia[];
+  createdAt?: string;
 }
 
 export interface PaginatedResponse<T> {
