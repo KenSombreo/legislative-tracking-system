@@ -161,9 +161,15 @@ export default function LegislationForm({
                 <option value="">Select...</option>
                 {/* Keep an older free-text value selectable so editing doesn't silently drop it. */}
                 {form[f.field] && !f.options.includes(form[f.field]) && <option>{form[f.field]}</option>}
-                {f.options.map((o) => (
-                  <option key={o}>{o}</option>
-                ))}
+                {f.optionGroups
+                  ? f.optionGroups.map((g) => (
+                      <optgroup key={g.label} label={g.label}>
+                        {g.options.map((o) => (
+                          <option key={o}>{o}</option>
+                        ))}
+                      </optgroup>
+                    ))
+                  : f.options.map((o) => <option key={o}>{o}</option>)}
               </select>
             ) : (
               <input

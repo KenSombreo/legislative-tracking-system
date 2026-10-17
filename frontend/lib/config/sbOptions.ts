@@ -33,5 +33,89 @@ export const SB_COMMITTEES = [
   "Committee on Labor and Employment",
 ];
 
-// TODO: complete the list of 48 PDP pillars.
-export const PDP_PILLARS = ["Scholarship", "ALS", "ECCD"];
+// PDP pillars, by pillar and focus area. An ordinance is tagged with one of the items.
+// TODO: add pillars II and III.
+const PDP_PILLAR_TREE: { pillar: string; areas: { area: string; items: string[] }[] }[] = [
+  {
+    pillar: "I. Human Capital Development",
+    areas: [
+      {
+        area: "1. Education-Focused Ordinances",
+        items: ["Local Scholarship", "Alternative Learning System (ALS) Support", "Early Childhood Care and Development (ECCD)"],
+      },
+      {
+        area: "2. Skills Training and Livelihood Ordinances",
+        items: ["Skills Development and Livelihood Training Center", "Youth Employability", "Local Internship Program"],
+      },
+      {
+        area: "3. Health-Focused Ordinances",
+        items: ["Healthcare (UHC-Local Implementation)", "Nutrition Improvement", "Mental Health and Wellness"],
+      },
+    ],
+  },
+  {
+    pillar: "IV. Climate & Disaster Resilience",
+    areas: [
+      {
+        area: "1. Climate Change Adaptation and Mitigation",
+        items: [
+          "Local Climate Change Action Plan (LCCAP) Adoption",
+          "Green Building and Climate-Smart Infrastructure",
+          "Urban Greening and Tree-Planting",
+        ],
+      },
+      {
+        area: "2. Disaster Risk Reduction and Emergency Preparedness",
+        items: [
+          "Local Disaster Risk Reduction and Management (LDRRM) Institutionalization",
+          "Community-Based Early Warning System",
+          "Evacuation Center and Safe Shelter Standards",
+        ],
+      },
+      {
+        area: "3. Environmental Protection and Risk Reduction",
+        items: ["Solid Waste Management and Plastic Regulation", "Watershed and Coastal Management", "Climate Resilient Agriculture"],
+      },
+    ],
+  },
+  {
+    pillar: "V. Good Governance & Social Protection",
+    areas: [
+      {
+        area: "1. Good Governance, Transparency, and Accountability",
+        items: [
+          "Full Disclosure and Transparency",
+          "Citizens' Charter and Anti-Red Tape",
+          "Participatory Governance and Local Special Bodies (LSB) Strengthening",
+        ],
+      },
+      {
+        area: "2. Social Protection and Inclusion",
+        items: [
+          "Socialized Housing and Informal Settler Support",
+          // Local Sectoral Support: a separate ordinance for each priority sector.
+          "Local Sectoral Support: Persons with Disability (PWDs)",
+          "Local Sectoral Support: Senior Citizens",
+          "Local Sectoral Support: Solo Parents and Women",
+          "Local Sectoral Support: Children",
+          "Local Social Protection Program",
+        ],
+      },
+      {
+        area: "3. Institutional Integrity and Service Delivery",
+        items: [
+          "Local Performance and Accountability Review",
+          "Integrity and Ethics in Public Service",
+          "Barangay Good Governance Incentives",
+        ],
+      },
+    ],
+  },
+];
+
+// For <optgroup>s in the pick-list.
+export const PDP_PILLAR_GROUPS = PDP_PILLAR_TREE.flatMap((p) =>
+  p.areas.map((a) => ({ label: `${p.pillar} — ${a.area}`, options: a.items }))
+);
+
+export const PDP_PILLARS = PDP_PILLAR_GROUPS.flatMap((g) => g.options);

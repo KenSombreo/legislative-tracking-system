@@ -8,7 +8,7 @@ import { apiClient, ApiError } from "../../../lib/api/client";
 import { getUser, isAuthenticated } from "../../../lib/auth";
 import { Legislation } from "../../../lib/types";
 import { DocumentType } from "../../../lib/config/legislationFields";
-import { PDP_PILLARS, SB_COMMITTEES, SB_MEMBERS } from "../../../lib/config/sbOptions";
+import { PDP_PILLAR_GROUPS, SB_COMMITTEES, SB_MEMBERS } from "../../../lib/config/sbOptions";
 
 const TYPE_OPTIONS: { label: string; type: DocumentType | null }[] = [
   { label: "Ordinance", type: DocumentType.ORDINANCE },
@@ -334,8 +334,12 @@ function UploadDocumentInner() {
                     <label className="field-label">PDP pillar</label>
                     <select value={form.pdpPillar} onChange={(e) => update("pdpPillar", e.target.value)} className="field-input">
                       <option value="">Select PDP pillar...</option>
-                      {PDP_PILLARS.map((p) => (
-                        <option key={p}>{p}</option>
+                      {PDP_PILLAR_GROUPS.map((g) => (
+                        <optgroup key={g.label} label={g.label}>
+                          {g.options.map((p) => (
+                            <option key={p}>{p}</option>
+                          ))}
+                        </optgroup>
                       ))}
                     </select>
                   </div>

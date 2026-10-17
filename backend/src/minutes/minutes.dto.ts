@@ -33,6 +33,10 @@ export class CreateMinutesDto {
   @IsDateString()
   @IsOptional()
   dateApproved?: string;
+
+  @IsString()
+  @IsOptional()
+  transcript?: string;
 }
 
 export class UpdateMinutesDto extends PartialType(CreateMinutesDto) {}

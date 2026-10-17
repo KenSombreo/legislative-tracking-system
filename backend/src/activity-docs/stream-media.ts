@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import * as os from 'os';
-import { ActivityMedia } from './activity-doc.schema';
+import { Attachment } from '../common/crud/base-crud.service';
 import { ActivityDocsService } from './activity-docs.service';
 
 const MAX_MEDIA_SIZE = parseInt(process.env.MAX_MEDIA_SIZE || '209715200', 10); // 200 MB
@@ -8,8 +8,8 @@ const MAX_MEDIA_SIZE = parseInt(process.env.MAX_MEDIA_SIZE || '209715200', 10); 
 // Up to 20 files per upload, spooled to the temp folder (see ActivityDocsService.addMedia).
 export const MEDIA_UPLOAD_OPTIONS = { dest: os.tmpdir(), limits: { fileSize: MAX_MEDIA_SIZE, files: 20 } };
 
-/** Sends a photo or video, honouring HTTP Range so videos can be seeked and played on phones (Safari needs it). */
-export function streamMedia(service: ActivityDocsService, media: ActivityMedia, download: string | undefined, req: Request, res: Response) {
+/** Sends a photo, video or recording, honouring HTTP Range so it can be seeked and played on phones (Safari needs it). */
+export function streamMedia(service: Pick<ActivityDocsService, 'readStream'>, media: Attachment, download: string | undefined, req: Request, res: Response) {
   const size = media.fileSize;
   res.setHeader('Content-Type', media.mimeType);
   res.setHeader('Accept-Ranges', 'bytes');

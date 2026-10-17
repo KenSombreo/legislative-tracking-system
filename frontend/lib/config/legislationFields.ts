@@ -1,4 +1,4 @@
-import { PDP_PILLARS, SB_COMMITTEES, SB_MEMBERS } from "./sbOptions";
+import { PDP_PILLAR_GROUPS, PDP_PILLARS, SB_COMMITTEES, SB_MEMBERS } from "./sbOptions";
 
 export enum DocumentType {
   ORDINANCE = "ORDINANCE",
@@ -19,6 +19,8 @@ export interface FieldRule {
   required: boolean;
   // Fixed choices; a select field without these is left as free text.
   options?: string[];
+  // The same choices split into headed groups, when the list is long.
+  optionGroups?: { label: string; options: string[] }[];
 }
 
 export const LEGISLATION_FIELD_RULES: Record<DocumentType, FieldRule[]> = {
@@ -29,7 +31,7 @@ export const LEGISLATION_FIELD_RULES: Record<DocumentType, FieldRule[]> = {
     { field: "author", label: "Author / Sponsor", type: "select", required: true, options: SB_MEMBERS },
     { field: "proponent", label: "Proponent", type: "select", required: false, options: SB_MEMBERS },
     { field: "committee", label: "Committee Referred", type: "select", required: false, options: SB_COMMITTEES },
-    { field: "pdpPillar", label: "PDP Pillar", type: "select", required: false, options: PDP_PILLARS },
+    { field: "pdpPillar", label: "PDP Pillar", type: "select", required: false, options: PDP_PILLARS, optionGroups: PDP_PILLAR_GROUPS },
     { field: "dateEnactedApprovedBySP", label: "Date Enacted/Approved by SP", type: "date", required: false },
     { field: "spResolutionNumber", label: "SP Resolution Number", type: "text", required: false },
     { field: "status", label: "Status", type: "select", required: true },

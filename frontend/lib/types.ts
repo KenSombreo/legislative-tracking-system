@@ -152,6 +152,10 @@ export interface SessionMinutes extends Tracked {
   status: "DRAFT" | "APPROVED";
   dateApproved: string | null;
   attachment: Attachment | null;
+  recording: Attachment | null;
+  transcriptStatus: "PENDING" | "PROCESSING" | "DONE" | "FAILED" | null;
+  transcript: string | null;
+  transcriptError: string | null;
 }
 
 export interface CommitteeReport extends Tracked {

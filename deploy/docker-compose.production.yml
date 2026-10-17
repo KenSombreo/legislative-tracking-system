@@ -8,6 +8,7 @@
 #                  DATABASE_URL at the host:
 #                  mongodb://<user>:<password>@host.docker.internal:27017/legislative_tracking
 #   /mnt/legislative-tracking/storage   uploaded documents (create once: mkdir -p, chown -R 1000:1000)
+#   /mnt/legislative-tracking/whisper-cache   speech-to-text model files (create once: mkdir -p)
 #
 # Ports: frontend 4001, backend 3001 (backend only on the server's localhost).
 # Nginx Proxy Manager reaches the site over the shared "proxy" network
@@ -31,6 +32,8 @@ services:
       # 25 MB, matching the limit shown on the upload screens.
       MAX_FILE_SIZE: "26214400"
       MAX_MEDIA_SIZE: "209715200"
+      # Session recordings are transcribed by the whisper service below.
+      WHISPER_URL: http://whisper:9000
     extra_hosts:
       # Lets the container reach MongoDB running on the server.
       - "host.docker.internal:host-gateway"
@@ -42,6 +45,25 @@ services:
       # server so they survive redeploys. The folder must be owned by uid 1000
       # (the container's "node" user).
       - /mnt/legislative-tracking/storage:/app/storage
+    networks:
+      - default
+    depends_on:
+      - whisper
+
+  # Free, self-hosted speech-to-text for the minutes' session recordings (OpenAI's Whisper model,
+  # run on the CPU). Only the backend talks to it. Model sizes, fastest to most accurate:
+  # base, small, medium, large-v3. "small" handles Tagalog/English well and needs about 2 GB of RAM;
+  # a one-hour recording takes very roughly 20-60 minutes, depending on the server's CPU.
+  # The model is downloaded on first use and kept in the cache folder.
+  whisper:
+    image: onerahmet/openai-whisper-asr-webservice:v1.10.0
+    container_name: legislative-tracking-whisper
+    restart: unless-stopped
+    environment:
+      ASR_ENGINE: faster_whisper
+      ASR_MODEL: small
+    volumes:
+      - /mnt/legislative-tracking/whisper-cache:/root/.cache
     networks:
       - default
 

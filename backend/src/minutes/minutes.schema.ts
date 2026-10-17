@@ -12,6 +12,13 @@ export enum MinutesStatus {
   APPROVED = 'APPROVED',
 }
 
+export enum TranscriptStatus {
+  PENDING = 'PENDING',
+  PROCESSING = 'PROCESSING',
+  DONE = 'DONE',
+  FAILED = 'FAILED',
+}
+
 @Schema({ timestamps: true })
 export class SessionMinutes extends Document {
   @Prop({ type: String, enum: SessionType, default: SessionType.REGULAR })
@@ -41,6 +48,20 @@ export class SessionMinutes extends Document {
 
   @Prop({ type: Object, default: null })
   attachment: Attachment | null;
+
+  // Audio recording of the session, turned into text by the Whisper service (see TranscriptionService).
+  @Prop({ type: Object, default: null })
+  recording: Attachment | null;
+
+  @Prop({ type: String, enum: TranscriptStatus, default: null })
+  transcriptStatus: TranscriptStatus | null;
+
+  // Editable after transcription so the secretary can correct names and terms.
+  @Prop({ type: String, default: null })
+  transcript: string | null;
+
+  @Prop({ type: String, default: null })
+  transcriptError: string | null;
 
   @Prop({ type: Types.ObjectId, ref: 'User', default: null })
   createdBy: Types.ObjectId | null;
