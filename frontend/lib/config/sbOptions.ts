@@ -34,7 +34,8 @@ export const SB_COMMITTEES = [
 ];
 
 // PDP pillars, by pillar and focus area. An ordinance is tagged with one of the items.
-// TODO: add pillars II and III.
+// A pillar with no areas yet is offered as a single item under its own name.
+// TODO: add pillar III, and the focus areas for pillar II.
 const PDP_PILLAR_TREE: { pillar: string; areas: { area: string; items: string[] }[] }[] = [
   {
     pillar: "I. Human Capital Development",
@@ -52,6 +53,10 @@ const PDP_PILLAR_TREE: { pillar: string; areas: { area: string; items: string[] 
         items: ["Healthcare (UHC-Local Implementation)", "Nutrition Improvement", "Mental Health and Wellness"],
       },
     ],
+  },
+  {
+    pillar: "II. Economic",
+    areas: [],
   },
   {
     pillar: "IV. Climate & Disaster Resilience",
@@ -115,7 +120,9 @@ const PDP_PILLAR_TREE: { pillar: string; areas: { area: string; items: string[] 
 
 // For <optgroup>s in the pick-list.
 export const PDP_PILLAR_GROUPS = PDP_PILLAR_TREE.flatMap((p) =>
-  p.areas.map((a) => ({ label: `${p.pillar} — ${a.area}`, options: a.items }))
+  p.areas.length
+    ? p.areas.map((a) => ({ label: `${p.pillar} — ${a.area}`, options: a.items }))
+    : [{ label: p.pillar, options: [p.pillar] }]
 );
 
 export const PDP_PILLARS = PDP_PILLAR_GROUPS.flatMap((g) => g.options);

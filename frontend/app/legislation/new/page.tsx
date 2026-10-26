@@ -292,8 +292,11 @@ function UploadDocumentInner() {
                   />
                 </div>
                 <div>
-                  <label className="field-label">{docType === DocumentType.RESOLUTION ? "Sponsor" : "Author / Sponsor"} *</label>
-                  <select required value={form.author} onChange={(e) => update("author", e.target.value)} className="field-input">
+                  <label className="field-label">
+                    {docType === DocumentType.RESOLUTION ? "Sponsor" : "Author / Sponsor"}
+                    {!isOrdinance && " *"}
+                  </label>
+                  <select required={!isOrdinance} value={form.author} onChange={(e) => update("author", e.target.value)} className="field-input">
                     <option value="">Select SB member...</option>
                     {SB_MEMBERS.map((m) => (
                       <option key={m}>{m}</option>
@@ -302,8 +305,8 @@ function UploadDocumentInner() {
                 </div>
                 {isOrdinance && (
                   <div>
-                    <label className="field-label">Proponent</label>
-                    <select value={form.proponent} onChange={(e) => update("proponent", e.target.value)} className="field-input">
+                    <label className="field-label">Proponent *</label>
+                    <select required value={form.proponent} onChange={(e) => update("proponent", e.target.value)} className="field-input">
                       <option value="">Select SB member...</option>
                       {SB_MEMBERS.map((m) => (
                         <option key={m}>{m}</option>
